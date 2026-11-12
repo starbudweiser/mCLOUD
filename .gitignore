@@ -1,0 +1,5 @@
+build/
+*.app
+engine/rclone
+.DS_Store
+PASSATION_*.md
