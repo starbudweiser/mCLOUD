@@ -20,6 +20,7 @@ cp "$ZIP" "$STAGE/$ASSET"; (cd "$STAGE" && shasum -a 256 "$ASSET" > "$ASSET.sha2
 if gh release view "$TAG" -R "$OWNER/$REPO" >/dev/null 2>&1; then
   gh release upload "$TAG" -R "$OWNER/$REPO" --clobber "$STAGE/$ASSET" "$STAGE/$ASSET.sha256"
 else
-  gh release create "$TAG" -R "$OWNER/$REPO" --target main --title "mCLOUD $VERSION" ${NOTES:+--notes "$NOTES"} ${NOTES:---generate-notes} "$STAGE/$ASSET" "$STAGE/$ASSET.sha256"
+  if [ -n "$NOTES" ]; then N=(--notes "$NOTES"); else N=(--generate-notes); fi
+  gh release create "$TAG" -R "$OWNER/$REPO" --target main --title "mCLOUD $VERSION" "${N[@]}" "$STAGE/$ASSET" "$STAGE/$ASSET.sha256"
 fi
 echo "✓ https://github.com/$OWNER/$REPO/releases/tag/$TAG"
