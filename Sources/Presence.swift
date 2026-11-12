@@ -89,17 +89,16 @@ final class Presence: NSObject {
             }
         }
         m.addItem(.separator())
-        if Veille.shared.unread > 0 { add(L("menu.watch", Veille.shared.unread), #selector(openMainAction), symbol: "eye") }
-        add(L("menu.open"), #selector(openMainAction), symbol: "macwindow")
+        if Veille.shared.unread > 0 { add(L("menu.watch", Veille.shared.unread), #selector(openMainAction)) }
+        add(L("menu.open"), #selector(openMainAction))
         let iconItem = NSMenuItem(title: L("set.icon"), action: nil, keyEquivalent: ""), sub = NSMenu()
         for mode in IconMode.allCases {
             let i = NSMenuItem(title: mode.label, action: #selector(chooseMode(_:)), keyEquivalent: ""); i.target = self
             i.representedObject = mode.rawValue; i.state = mode == IconMode.current ? .on : .off; sub.addItem(i)
         }
-        Self.decorate(iconItem, symbol: "dock.rectangle")
         iconItem.submenu = sub; m.addItem(iconItem)
-        add(L("about.menu"), #selector(about), symbol: "info.circle")
-        add(L("menu.quit"), #selector(quit), symbol: "power")
+        add(L("about.menu"), #selector(about))
+        add(L("menu.quit"), #selector(quit))
         return m
     }
 
