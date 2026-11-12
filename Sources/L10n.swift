@@ -51,6 +51,7 @@ enum Lang {
         ("add.2fa", "Code de vérification reçu", "Verification code received", "Código de verificación recibido", "Codice di verifica ricevuto"),
         ("add.2fa.ok", "Valider", "Confirm", "Validar", "Conferma"),
         ("add.required", "Remplissez les champs obligatoires.", "Fill in the required fields.", "Rellene los campos obligatorios.", "Compila i campi obbligatori."),
+        ("f.drive_id", "ID du kDrive (nombre dans l'adresse de votre kDrive)", "kDrive ID (number in your kDrive address)", "ID del kDrive (número en la dirección de su kDrive)", "ID del kDrive (numero nell'indirizzo del tuo kDrive)"),
         ("f.client_id", "ID client (facultatif)", "Client ID (optional)", "ID de cliente (opcional)", "ID client (facoltativo)"),
         ("f.client_secret", "Secret client (facultatif)", "Client secret (optional)", "Secreto de cliente (opcional)", "Segreto client (facoltativo)"),
         ("f.user", "Identifiant", "Username", "Usuario", "Utente"),

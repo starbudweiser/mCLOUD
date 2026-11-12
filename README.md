@@ -1,6 +1,6 @@
 ## About
 
-**mCLOUD** is a macOS app that mounts your cloud accounts (Google Drive, Dropbox, OneDrive, iCloud Drive, Box, pCloud, MEGA, S3, Backblaze B2, Wasabi, SFTP, FTP, Nextcloud, WebDAV) as drives in the Finder. No kernel extension and no macFUSE: it runs a local WebDAV server powered by [rclone](https://rclone.org) (MIT) and mounts it with macOS.
+**mCLOUD** is a macOS app that mounts your cloud accounts (Google Drive, Dropbox, OneDrive, iCloud Drive, Box, pCloud, Infomaniak kDrive, MEGA, S3, Backblaze B2, Wasabi, SFTP, FTP, Nextcloud, WebDAV) as drives in the Finder. No kernel extension and no macFUSE: it runs a local WebDAV server powered by [rclone](https://rclone.org) (MIT) and mounts it with macOS.
 
 - Client-side encryption, mount at startup, low local storage by default (offline cache is optional per account).
 - A silent internal watch follows rclone releases and each account's health, and reports any change at a service that calls for a code fix.

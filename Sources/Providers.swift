@@ -30,6 +30,7 @@ enum Providers {
             Provider(id: "dropbox", name: "Dropbox", type: "dropbox", fields: oauthOptional, oauth: true, symbol: "shippingbox", keywords: ["dropbox"]),
             Provider(id: "onedrive", name: "OneDrive", type: "onedrive", fields: oauthOptional, oauth: true, symbol: "cloud", keywords: ["onedrive", "sharepoint", "microsoft", "graph"]),
             Provider(id: "icloud", name: "iCloud Drive", type: "iclouddrive", fields: [Field(key: "apple_id", label: "f.apple_id"), Field(key: "password", label: "f.pass", secret: true)], twoFactor: true, symbol: "icloud", keywords: ["icloud", "apple"]),
+            Provider(id: "kdrive", name: "Infomaniak kDrive", type: "kdrive", fields: [Field(key: "drive_id", label: "f.drive_id")] + oauthOptional.prefix(1), oauth: true, symbol: "icloud.and.arrow.up", keywords: ["kdrive", "infomaniak"]),
             Provider(id: "box", name: "Box", type: "box", fields: oauthOptional, oauth: true, symbol: "archivebox", keywords: ["box"]),
             Provider(id: "pcloud", name: "pCloud", type: "pcloud", fields: oauthOptional, oauth: true, symbol: "cloud.fill", keywords: ["pcloud"]),
             Provider(id: "mega", name: "MEGA", type: "mega", fields: [Field(key: "user", label: "f.user"), Field(key: "pass", label: "f.pass", secret: true)], symbol: "m.circle", keywords: ["mega"]),
