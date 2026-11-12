@@ -143,7 +143,7 @@ final class Mounter: ObservableObject {
             let r = await Rclone.run(["lsd", spec.target, "--max-depth", "0", "--timeout", "20s", "--contimeout", "10s", "--retries", "1"], env: spec.env, timeout: 60)
             if r.code == 0 { fails[a.id] = 0; continue }
             switch Veille.classify(r.out) {
-            case .network: fails[a.id, default: 0] += 1
+            case .network, .config: fails[a.id, default: 0] += 1
             case .auth:
                 Veille.shared.record(.user, service: Providers.find(a.provider)?.name ?? a.name, title: L("w.auth", a.name), detail: Rclone.lastLine(r.out))
                 states[a.id] = .error(L("watch.kind.user")); continue

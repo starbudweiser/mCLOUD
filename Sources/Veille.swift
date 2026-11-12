@@ -7,7 +7,7 @@ import Foundation
 final class Veille: ObservableObject {
     static let shared = Veille()
     enum Kind: String, Codable { case code, user, info }
-    enum Cause { case network, auth, api, other }
+    enum Cause { case network, auth, api, config, other }
 
     struct Finding: Codable, Identifiable {
         var id = UUID()
@@ -30,7 +30,7 @@ final class Veille: ObservableObject {
     private var file: URL { Rclone.supportDir.appendingPathComponent("veille.json") }
 
     init() {
-        if let d = try? Data(contentsOf: file), let s = try? JSONDecoder().decode(Saved.self, from: d) { findings = s.findings; last = s.last }
+        if let d = try? Data(contentsOf: file), let s = try? JSONDecoder().decode(Saved.self, from: d) { findings = s.findings.filter { !$0.detail.contains("Failed to create file system") }; last = s.last }
     }
 
     /// Une veille par jour, vérifiée toutes les 10 minutes ; la première 30 secondes après le lancement.
@@ -94,13 +94,13 @@ final class Veille: ObservableObject {
     // MARK: Santé des comptes
 
     private func probeAccounts() async {
-        for a in Store.shared.accounts {
+        for a in Store.shared.accounts where !a.pending && !a.remote.isEmpty {
             guard let spec = await Mounter.spec(a) else { continue }
             let r = await Rclone.run(["lsd", spec.target, "--max-depth", "0", "--timeout", "30s", "--contimeout", "15s", "--retries", "2"], env: spec.env, timeout: 120)
             if r.code == 0 { continue }
             let name = Providers.find(a.provider)?.name ?? a.name
             switch Self.classify(r.out) {
-            case .network: break
+            case .network, .config: break
             case .auth: record(.user, service: name, title: L("w.auth", a.name), detail: Rclone.lastLine(r.out))
             case .api, .other: record(.code, service: name, title: L("w.api", a.name), detail: Rclone.lastLine(r.out))
             }
@@ -109,6 +109,7 @@ final class Veille: ObservableObject {
 
     nonisolated static func classify(_ out: String) -> Cause {
         let s = out.lowercased()
+        if s.contains("failed to create file system") || s.contains("didn't find section") || s.contains("config name") { return .config }   // problème local, pas un service
         let net = ["no such host", "i/o timeout", "network is unreachable", "connection refused", "connection reset", "no route to host", "dial tcp", "timeout", "temporary failure", "eof"]
         let auth = ["invalid_grant", "unauthorized", "401", "token", "expired", "reauth", "authentication", "permission denied", "login", "forbidden", "403"]
         let api = ["404", "410", "not implemented", "deprecated", "unsupported", "unknown field", "bad request", "400", "invalid argument", "unexpected", "cannot unmarshal", "json"]
