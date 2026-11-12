@@ -3,6 +3,21 @@
 import AppKit
 import Combine
 
+/// Où l'appli apparaît : Dock, barre de menus, ou les deux (préférence). Avec la barre de menus seule, fermer la fenêtre ne
+/// quitte pas l'appli : les disques restent montés et la veille continue.
+enum IconMode: String, CaseIterable, Identifiable {
+    case dock, menubar, both
+    var id: String { rawValue }
+    var label: String { L("set.icon.\(rawValue)") }
+    var showsDock: Bool { self != .menubar }
+    var showsMenuBar: Bool { self != .dock }
+    static let key = "iconMode"
+    static var current: IconMode {
+        get { IconMode(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .both }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: key) }
+    }
+}
+
 @MainActor
 final class Presence: NSObject {
     static let shared = Presence()
@@ -10,7 +25,16 @@ final class Presence: NSObject {
     private var item: NSStatusItem?
     private var bag = Set<AnyCancellable>()
 
-    func install() {
+    /// Applique la préférence : politique d'activation (Dock) et icône de la barre de menus.
+    func apply() {
+        let m = IconMode.current
+        let wanted: NSApplication.ActivationPolicy = m.showsDock ? .regular : .accessory
+        if NSApp.activationPolicy() != wanted { NSApp.setActivationPolicy(wanted) }
+        if m.showsMenuBar { install() } else if let it = item { NSStatusBar.system.removeStatusItem(it); item = nil; bag.removeAll() }
+    }
+
+    private func install() {
+        guard item == nil else { return }
         let it = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item = it
         it.menu = nil
@@ -65,6 +89,12 @@ final class Presence: NSObject {
         m.addItem(.separator())
         if Veille.shared.unread > 0 { add(L("menu.watch", Veille.shared.unread), #selector(openMainAction)) }
         add(L("menu.open"), #selector(openMainAction))
+        let iconItem = NSMenuItem(title: L("set.icon"), action: nil, keyEquivalent: ""), sub = NSMenu()
+        for mode in IconMode.allCases {
+            let i = NSMenuItem(title: mode.label, action: #selector(chooseMode(_:)), keyEquivalent: ""); i.target = self
+            i.representedObject = mode.rawValue; i.state = mode == IconMode.current ? .on : .off; sub.addItem(i)
+        }
+        iconItem.submenu = sub; m.addItem(iconItem)
         add(L("about.menu"), #selector(about))
         add(L("menu.quit"), #selector(quit))
         return m
@@ -73,6 +103,12 @@ final class Presence: NSObject {
     @objc private func toggle(_ s: NSMenuItem) {
         guard let id = s.representedObject as? UUID, let a = Store.shared.accounts.first(where: { $0.id == id }) else { return }
         Task { if case .on = Mounter.shared.state(a) { await Mounter.shared.unmount(a) } else { await Mounter.shared.mount(a) } }
+    }
+    @objc private func chooseMode(_ s: NSMenuItem) {
+        guard let raw = s.representedObject as? String, let mode = IconMode(rawValue: raw) else { return }
+        IconMode.current = mode
+        apply()
+        if mode == .dock { openMain?() }   // plus d'icône ici : la fenêtre reste accessible par le Dock
     }
     @objc private func openMainAction() { openMain?() }
     @objc private func about() { About.show() }

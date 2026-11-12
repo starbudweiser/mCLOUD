@@ -19,9 +19,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ n: Notification) {
         Socle.apply(.dark)
         Socle.brand("mCLOUD", color: Color(nsColor: BrandStyle.color))
-        NSApp.setActivationPolicy(.regular)
         Presence.shared.openMain = { [weak self] in self?.showMain() }
-        Presence.shared.install()
+        Presence.shared.apply()
         Mounter.shared.startMonitoring()
         Veille.shared.start()
         Updater.shared.start(busy: { Mounter.shared.states.values.contains { $0 == .starting || $0 == .healing } })

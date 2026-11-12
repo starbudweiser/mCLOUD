@@ -315,6 +315,7 @@ struct VeilleView: View {
 struct SettingsView: View {
     @State private var login = SMAppService.mainApp.status == .enabled
     @State private var engine = ""
+    @State private var iconMode = IconMode.current
     @ObservedObject private var upd = Updater.shared
     @AppStorage("autoUpdate") private var auto = true
 
@@ -322,6 +323,12 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: Socle.M.space4) {
             Toggle(L("set.login"), isOn: $login).toggleStyle(.checkbox).socle(Socle.T.body)
                 .onChange(of: login) { on in do { if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() } } catch { login = SMAppService.mainApp.status == .enabled } }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L("set.icon")).socle(Socle.T.label).foregroundStyle(Socle.C.textMuted)
+                Picker("", selection: $iconMode) { ForEach(IconMode.allCases) { Text($0.label).tag($0) } }
+                    .pickerStyle(.segmented).labelsHidden().frame(width: 360)
+                    .onChange(of: iconMode) { m in IconMode.current = m; Presence.shared.apply() }
+            }
             Text(L("set.engine", engine)).socle(Socle.T.meta).foregroundStyle(Socle.C.textSubtle)
             Divider().overlay(Socle.C.border)
             Text(L("upd.title")).socle(Socle.T.title).foregroundStyle(Socle.C.textStrong)
