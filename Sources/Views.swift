@@ -3,6 +3,8 @@ import AppKit
 import ServiceManagement
 import SwiftUI
 
+extension View { func btnWidth(_ w: CGFloat) -> some View { frame(width: w) } }
+
 enum Tab: CaseIterable { case accounts, watch, settings
     var key: String { switch self { case .accounts: "tab.accounts"; case .watch: "tab.watch"; case .settings: "tab.settings" } }
 }
@@ -22,7 +24,7 @@ struct RootView: View {
                             Text(L(t.key))
                             if t == .watch, veille.unread > 0 { Text("\(veille.unread)").socle(Socle.T.caption).padding(.horizontal, 5).background(Socle.C.warning, in: Capsule()).foregroundStyle(Socle.C.bg) }
                         }
-                    }.buttonStyle(SocleButtonStyle(tab == t ? .primary : .secondary))
+                    }.buttonStyle(SocleButtonStyle(tab == t ? .primary : .secondary)).btnWidth(120)
                 }
             }
             .padding(.horizontal, Socle.M.space4).frame(height: Socle.M.sizeBar + 8)
@@ -53,10 +55,10 @@ struct AccountsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Socle.M.space3) {
             HStack {
-                if Importer.available { Button(L("acc.import")) { imported = Importer.run() }.buttonStyle(SocleButtonStyle(.secondary)) }
+                if Importer.available { Button(L("acc.import")) { imported = Importer.run() }.buttonStyle(SocleButtonStyle(.secondary)).btnWidth(230) }
                 if let n = imported { Text(L("acc.import.done", n)).socle(Socle.T.meta).foregroundStyle(Socle.C.textMuted) }
                 Spacer()
-                Button(L("acc.add")) { adding = true }.buttonStyle(SocleButtonStyle(.primary))
+                Button(L("acc.add")) { adding = true }.buttonStyle(SocleButtonStyle(.primary)).btnWidth(200)
             }
             if store.accounts.isEmpty {
                 VStack(spacing: Socle.M.space2) {
@@ -84,23 +86,31 @@ struct AccountsView: View {
                 Text(a.name).socle(Socle.T.title).foregroundStyle(Socle.C.textStrong)
                 Text([p?.name ?? a.provider, a.encrypted ? L("acc.encrypted") : nil].compactMap { $0 }.joined(separator: " · ")).socle(Socle.T.meta).foregroundStyle(Socle.C.textSubtle)
             }
-            Spacer()
-            if !a.pending { status(st) }
-            if a.pending {
-                Text(a.hint.isEmpty ? L("acc.pending") : "\(L("acc.pending")) · \(a.hint)").socle(Socle.T.meta).foregroundStyle(Socle.C.warning).lineLimit(1)
-                Button(L("acc.authorize")) { authorizing = a }.buttonStyle(SocleButtonStyle(.primary))
-            } else {
-            switch st {
-            case .on(let path):
-                Button(L("acc.open")) { NSWorkspace.shared.open(URL(fileURLWithPath: path)) }.buttonStyle(SocleButtonStyle(.secondary))
-                Button(L("acc.unmount")) { Task { await mounter.unmount(a) } }.buttonStyle(SocleButtonStyle(.secondary))
-            case .starting, .healing:
-                ProgressView().controlSize(.small)
-            default:
-                Button(L("acc.mount")) { Task { await mounter.mount(a) } }.buttonStyle(SocleButtonStyle(.primary))
+            Spacer(minLength: Socle.M.space2)
+            Group {
+                if a.pending {
+                    Text(a.hint.isEmpty ? L("acc.pending") : a.hint).socle(Socle.T.meta).foregroundStyle(Socle.C.warning).lineLimit(1).truncationMode(.middle)
+                } else { status(st) }
+            }.frame(width: 190, alignment: .leading)
+            HStack(spacing: Socle.M.space2) {
+                if a.pending {
+                    Button(L("acc.authorize")) { authorizing = a }.buttonStyle(SocleButtonStyle(.primary)).btnWidth(110)
+                    Color.clear.frame(width: 110, height: 1)
+                } else {
+                    switch st {
+                    case .on(let path):
+                        Button(L("acc.open")) { NSWorkspace.shared.open(URL(fileURLWithPath: path)) }.buttonStyle(SocleButtonStyle(.secondary)).btnWidth(110)
+                        Button(L("acc.unmount")) { Task { await mounter.unmount(a) } }.buttonStyle(SocleButtonStyle(.secondary)).btnWidth(110)
+                    case .starting, .healing:
+                        ProgressView().controlSize(.small).frame(width: 110)
+                        Color.clear.frame(width: 110, height: 1)
+                    default:
+                        Button(L("acc.mount")) { Task { await mounter.mount(a) } }.buttonStyle(SocleButtonStyle(.primary)).btnWidth(110)
+                        Color.clear.frame(width: 110, height: 1)
+                    }
+                }
+                Button(L("acc.edit")) { editing = a }.buttonStyle(SocleButtonStyle(.tertiary)).btnWidth(100)
             }
-            }
-            Button(L("acc.edit")) { editing = a }.buttonStyle(SocleButtonStyle(.tertiary))
         }
         .padding(Socle.M.space3).background(Socle.C.surface)
     }
@@ -160,7 +170,7 @@ struct AddAccountView: View {
             } else if let p = provider {
                 ScrollView { VStack(alignment: .leading, spacing: Socle.M.space3) {
                     HStack { Image(systemName: p.symbol).foregroundStyle(Socle.C.accentText); Text(p.name).socle(Socle.T.title).foregroundStyle(Socle.C.textStrong)
-                        Spacer(); if !busy, existing == nil { Button(L("add.provider")) { provider = nil }.buttonStyle(SocleButtonStyle(.tertiary)) } }
+                        Spacer(); if !busy, existing == nil { Button(L("add.provider")) { provider = nil }.buttonStyle(SocleButtonStyle(.tertiary)).btnWidth(120) } }
                     LabeledField(label: L("add.name"), text: $name)
                     ForEach(p.fields) { f in LabeledField(label: L(f.label), text: binding(f.key), secret: f.secret) }
                     if p.oauth { Text(L("add.oauth.hint")).socle(Socle.T.meta).foregroundStyle(Socle.C.textSubtle) }
@@ -173,7 +183,7 @@ struct AddAccountView: View {
                     if let h = codeHelp {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(h.isEmpty ? L("add.2fa") : h).socle(Socle.T.body).foregroundStyle(Socle.C.textStrong)
-                            HStack { TextField("", text: $code).socleField(); Button(L("add.2fa.ok")) { codeHelp = nil; codeCont?.resume(returning: code); codeCont = nil; code = "" }.buttonStyle(SocleButtonStyle(.primary)) }
+                            HStack { TextField("", text: $code).socleField(); Button(L("add.2fa.ok")) { codeHelp = nil; codeCont?.resume(returning: code); codeCont = nil; code = "" }.buttonStyle(SocleButtonStyle(.primary)).btnWidth(110) }
                         }
                     }
                     if !error.isEmpty { Text(error).socle(Socle.T.body).foregroundStyle(Socle.C.danger) }
@@ -182,8 +192,8 @@ struct AddAccountView: View {
             HStack {
                 if busy { ProgressView().controlSize(.small); Text(L("add.connecting")).socle(Socle.T.meta).foregroundStyle(Socle.C.textMuted) }
                 Spacer()
-                Button(L("add.cancel")) { codeCont?.resume(returning: nil); dismiss() }.buttonStyle(SocleButtonStyle(.secondary))
-                if provider != nil { Button(L("add.connect")) { connect() }.buttonStyle(SocleButtonStyle(.primary)).disabled(busy) }
+                Button(L("add.cancel")) { codeCont?.resume(returning: nil); dismiss() }.buttonStyle(SocleButtonStyle(.secondary)).btnWidth(110)
+                if provider != nil { Button(L("add.connect")) { connect() }.buttonStyle(SocleButtonStyle(.primary)).btnWidth(150).disabled(busy) }
             }
         }
         .padding(Socle.M.space5).frame(width: 560, height: 560).background(Socle.C.surface)
@@ -244,10 +254,10 @@ struct EditAccountView: View {
             }
             Spacer()
             HStack {
-                Button(L("edit.delete")) { confirm = true }.buttonStyle(SocleButtonStyle(.tertiary)).foregroundStyle(Socle.C.danger)
+                Button(L("edit.delete")) { confirm = true }.buttonStyle(SocleButtonStyle(.tertiary)).foregroundStyle(Socle.C.danger).btnWidth(200)
                 Spacer()
-                Button(L("add.cancel")) { dismiss() }.buttonStyle(SocleButtonStyle(.secondary))
-                Button(L("edit.save")) { Store.shared.update(account); dismiss() }.buttonStyle(SocleButtonStyle(.primary))
+                Button(L("add.cancel")) { dismiss() }.buttonStyle(SocleButtonStyle(.secondary)).btnWidth(110)
+                Button(L("edit.save")) { Store.shared.update(account); dismiss() }.buttonStyle(SocleButtonStyle(.primary)).btnWidth(130)
             }
         }
         .padding(Socle.M.space5).frame(width: 460, height: 400).background(Socle.C.surface)
@@ -270,9 +280,9 @@ struct VeilleView: View {
             Text(L("watch.title")).socle(Socle.T.heading).foregroundStyle(Socle.C.textStrong)
             Text(L("watch.intro")).socle(Socle.T.body).foregroundStyle(Socle.C.textMuted)
             HStack {
-                Button(veille.running ? L("watch.running") : L("watch.run")) { Task { await veille.run() } }.buttonStyle(SocleButtonStyle(.primary)).disabled(veille.running)
-                Button(L("watch.markread")) { veille.markAllRead() }.buttonStyle(SocleButtonStyle(.secondary))
-                Button(L("watch.report")) { NSWorkspace.shared.open(veille.reportURL) }.buttonStyle(SocleButtonStyle(.secondary))
+                Button(veille.running ? L("watch.running") : L("watch.run")) { Task { await veille.run() } }.buttonStyle(SocleButtonStyle(.primary)).btnWidth(170).disabled(veille.running)
+                Button(L("watch.markread")) { veille.markAllRead() }.buttonStyle(SocleButtonStyle(.secondary)).btnWidth(190)
+                Button(L("watch.report")) { NSWorkspace.shared.open(veille.reportURL) }.buttonStyle(SocleButtonStyle(.secondary)).btnWidth(170)
                 Spacer()
                 Text(veille.last.map { L("watch.last", Self.df.string(from: $0)) } ?? L("watch.never")).socle(Socle.T.meta).foregroundStyle(Socle.C.textSubtle)
             }
@@ -320,18 +330,18 @@ struct SettingsView: View {
             Text(L("upd.title")).socle(Socle.T.title).foregroundStyle(Socle.C.textStrong)
             Toggle(L("upd.auto"), isOn: $auto).toggleStyle(.checkbox).socle(Socle.T.body)
             HStack {
-                Button(L("upd.check")) { Task { await upd.check() } }.buttonStyle(SocleButtonStyle(.secondary))
+                Button(L("upd.check")) { Task { await upd.check() } }.buttonStyle(SocleButtonStyle(.secondary)).btnWidth(260)
                 switch upd.state {
                 case .checking: Text(L("upd.checking")).socle(Socle.T.meta)
                 case .upToDate: Text(L("upd.uptodate")).socle(Socle.T.meta).foregroundStyle(Socle.C.success)
-                case .available(let v): Text(L("upd.available", v)).socle(Socle.T.meta); Button(L("upd.install")) { Task { await upd.install() } }.buttonStyle(SocleButtonStyle(.primary))
+                case .available(let v): Text(L("upd.available", v)).socle(Socle.T.meta); Button(L("upd.install")) { Task { await upd.install() } }.buttonStyle(SocleButtonStyle(.primary)).btnWidth(200)
                 case .downloading: Text(L("upd.downloading")).socle(Socle.T.meta)
                 case .failed(let e): Text(e).socle(Socle.T.meta).foregroundStyle(Socle.C.danger)
                 case .idle: EmptyView()
                 }
             }
             Divider().overlay(Socle.C.border)
-            Button(L("set.about")) { About.show() }.buttonStyle(SocleButtonStyle(.secondary))
+            Button(L("set.about")) { About.show() }.buttonStyle(SocleButtonStyle(.secondary)).btnWidth(260)
             Spacer()
         }
         .padding(Socle.M.space5).frame(maxWidth: .infinity, alignment: .leading)
