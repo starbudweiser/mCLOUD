@@ -74,16 +74,18 @@ final class Presence: NSObject {
 
     private func makeMenu() -> NSMenu {
         let m = NSMenu()
-        func add(_ title: String, _ sel: Selector, _ obj: Any? = nil) {
-            let i = NSMenuItem(title: title, action: sel, keyEquivalent: ""); i.target = self; i.representedObject = obj; m.addItem(i)
+        func add(_ title: String, _ sel: Selector, _ obj: Any? = nil, symbol: String? = nil) {
+            let i = NSMenuItem(title: title, action: sel, keyEquivalent: ""); i.target = self; i.representedObject = obj
+            i.image = Self.symbol(symbol)
+            m.addItem(i)
         }
         let accounts = Store.shared.accounts
         if accounts.isEmpty { let i = NSMenuItem(title: L("menu.none"), action: nil, keyEquivalent: ""); i.isEnabled = false; m.addItem(i) }
         for a in accounts {
             switch Mounter.shared.state(a) {
-            case .on: add("\(L("acc.unmount")) \(a.name)", #selector(toggle(_:)), a.id)
-            case .starting, .healing: let i = NSMenuItem(title: "\(a.name) — \(L("acc.status.starting"))", action: nil, keyEquivalent: ""); i.isEnabled = false; m.addItem(i)
-            default: add("\(L("acc.mount")) \(a.name)", #selector(toggle(_:)), a.id)
+            case .on: add("\(L("acc.unmount")) \(a.name)", #selector(toggle(_:)), a.id, symbol: Providers.find(a.provider)?.symbol)
+            case .starting, .healing: let i = NSMenuItem(title: "\(a.name) — \(L("acc.status.starting"))", action: nil, keyEquivalent: ""); i.isEnabled = false; i.image = Self.symbol(Providers.find(a.provider)?.symbol); m.addItem(i)
+            default: add("\(L("acc.mount")) \(a.name)", #selector(toggle(_:)), a.id, symbol: Providers.find(a.provider)?.symbol)
             }
         }
         m.addItem(.separator())
@@ -98,6 +100,14 @@ final class Presence: NSObject {
         add(L("about.menu"), #selector(about))
         add(L("menu.quit"), #selector(quit))
         return m
+    }
+
+    /// Pictogramme du service (monochrome, s'adapte au thème), à gauche du nom.
+    private static func symbol(_ name: String?) -> NSImage? {
+        guard let name else { return nil }
+        let img = NSImage(systemSymbolName: name, accessibilityDescription: nil)?.withSymbolConfiguration(.init(pointSize: 13, weight: .regular))
+        img?.isTemplate = true
+        return img
     }
 
     @objc private func toggle(_ s: NSMenuItem) {
