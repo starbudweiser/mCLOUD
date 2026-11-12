@@ -58,17 +58,13 @@ struct AccountsView: View {
                 if Importer.available { Button(L("acc.import")) { imported = Importer.run() }.buttonStyle(SocleButtonStyle(.secondary)).btnWidth(230) }
                 if let n = imported { Text(L("acc.import.done", n)).socle(Socle.T.meta).foregroundStyle(Socle.C.textMuted) }
                 Spacer()
-                Button(L("acc.add")) { adding = true }.buttonStyle(SocleButtonStyle(.primary)).btnWidth(200)
             }
-            if store.accounts.isEmpty {
-                VStack(spacing: Socle.M.space2) {
-                    Image(systemName: "cloud").font(.system(size: 40)).foregroundStyle(Socle.C.textSubtle)
-                    Text(L("acc.empty.title")).socle(Socle.T.heading).foregroundStyle(Socle.C.textStrong)
-                    Text(L("acc.empty.body")).socle(Socle.T.body).foregroundStyle(Socle.C.textMuted).multilineTextAlignment(.center).frame(maxWidth: 420)
-                }.frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView { VStack(spacing: 1) { ForEach(store.accounts) { a in row(a) } } }
-                    .background(Socle.C.border)
+            .frame(height: Importer.available ? Socle.M.sizeControlLg : 0)
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 320), spacing: Socle.M.space3)], spacing: Socle.M.space3) {
+                    ForEach(store.accounts) { a in card(a) }
+                    addCard
+                }
             }
         }
         .padding(Socle.M.space4)
@@ -77,39 +73,62 @@ struct AccountsView: View {
         .sheet(item: $authorizing) { AddAccountView(existing: $0) }
     }
 
-    /// Ligne d'un compte : le nom (une seule ligne, prioritaire), l'état, une action principale et un menu « … » pour le reste.
-    private func row(_ a: Account) -> some View {
+    /// Dernière carte de la grille : ajoute un compte (la liste n'a jamais de coin vide).
+    private var addCard: some View {
+        Button { adding = true } label: {
+            VStack(spacing: Socle.M.space2) {
+                Image(systemName: "plus.circle").font(.system(size: 26)).foregroundStyle(Socle.C.accentText)
+                Text(L("acc.add")).socle(Socle.T.title).foregroundStyle(Socle.C.textStrong)
+                if store.accounts.isEmpty { Text(L("acc.empty.body")).socle(Socle.T.meta).foregroundStyle(Socle.C.textMuted).multilineTextAlignment(.center).padding(.horizontal, Socle.M.space3) }
+            }
+            .frame(maxWidth: .infinity, minHeight: 112)
+            .background(Socle.C.bgInset)
+            .overlay(Rectangle().strokeBorder(Socle.C.borderStrong, style: StrokeStyle(lineWidth: 1, dash: [5, 4])))
+            .contentShape(Rectangle())
+        }.buttonStyle(.plain)
+    }
+
+    /// Carte d'un compte : identité (une seule ligne), menu « … », état et action principale.
+    private func card(_ a: Account) -> some View {
         let p = Providers.find(a.provider)
         let st = mounter.state(a)
         let sub = [p?.name ?? a.provider, a.encrypted ? L("acc.encrypted") : nil].compactMap { $0 }.joined(separator: " · ")
-        return HStack(spacing: Socle.M.space3) {
-            Image(systemName: p?.symbol ?? "cloud").font(.system(size: 20)).frame(width: 28).foregroundStyle(Socle.C.accentText)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(a.name).socle(Socle.T.title).foregroundStyle(Socle.C.textStrong).socleRowName(a.name)
-                Text(sub).socle(Socle.T.meta).foregroundStyle(Socle.C.textSubtle).socleRowName(sub)
-            }
-            Spacer(minLength: Socle.M.space2)
-            Group {
-                if a.pending { Text(a.hint.isEmpty ? L("acc.pending") : a.hint).socle(Socle.T.meta).foregroundStyle(Socle.C.warning).socleRowName(a.hint) }
-                else { status(st) }
-            }.frame(width: 130, alignment: .leading)
-            Group {
-                if a.pending { Button(L("acc.authorize")) { authorizing = a }.buttonStyle(SocleButtonStyle(.primary)) }
-                else {
-                    switch st {
-                    case .on(let path): Button(L("acc.open")) { NSWorkspace.shared.open(URL(fileURLWithPath: path)) }.buttonStyle(SocleButtonStyle(.secondary))
-                    case .starting, .healing: ProgressView().controlSize(.small)
-                    default: Button(L("acc.mount")) { Task { await mounter.mount(a) } }.buttonStyle(SocleButtonStyle(.primary))
-                    }
+        return VStack(alignment: .leading, spacing: Socle.M.space3) {
+            HStack(spacing: Socle.M.space3) {
+                Image(systemName: p?.symbol ?? "cloud").font(.system(size: 24)).frame(width: 32).foregroundStyle(Socle.C.accentText)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(a.name).socle(Socle.T.title).foregroundStyle(Socle.C.textStrong).socleRowName(a.name)
+                    Text(sub).socle(Socle.T.meta).foregroundStyle(Socle.C.textSubtle).socleRowName(sub)
                 }
-            }.frame(width: 100)
-            Menu {
-                if case .on = st { Button(L("acc.unmount")) { Task { await mounter.unmount(a) } } }
-                Button(L("acc.edit")) { editing = a }
-            } label: { Image(systemName: "ellipsis").frame(width: 28, height: Socle.M.sizeControlLg) }
-                .menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: 36)
+                Spacer(minLength: 0)
+                Menu {
+                    if case .on = st { Button(L("acc.unmount")) { Task { await mounter.unmount(a) } } }
+                    Button(L("acc.edit")) { editing = a }
+                } label: { Image(systemName: "ellipsis").frame(width: 28, height: 28) }
+                    .menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: 36)
+            }
+            Spacer(minLength: 0)
+            HStack(spacing: Socle.M.space2) {
+                Group {
+                    if a.pending { Text(a.hint.isEmpty ? L("acc.pending") : a.hint).socle(Socle.T.meta).foregroundStyle(Socle.C.warning).socleRowName(a.hint) }
+                    else { status(st) }
+                }
+                Spacer(minLength: 0)
+                Group {
+                    if a.pending { Button(L("acc.authorize")) { authorizing = a }.buttonStyle(SocleButtonStyle(.primary)) }
+                    else {
+                        switch st {
+                        case .on(let path): Button(L("acc.open")) { NSWorkspace.shared.open(URL(fileURLWithPath: path)) }.buttonStyle(SocleButtonStyle(.secondary))
+                        case .starting, .healing: ProgressView().controlSize(.small)
+                        default: Button(L("acc.mount")) { Task { await mounter.mount(a) } }.buttonStyle(SocleButtonStyle(.primary))
+                        }
+                    }
+                }.frame(width: 110)
+            }
         }
-        .padding(Socle.M.space3).background(Socle.C.surface)
+        .padding(Socle.M.space3).frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
+        .background(Socle.C.surface)
+        .overlay(Rectangle().stroke(Socle.C.border, lineWidth: 1))
     }
 
     @ViewBuilder private func status(_ s: MountState) -> some View {

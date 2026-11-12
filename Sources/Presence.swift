@@ -76,7 +76,7 @@ final class Presence: NSObject {
         let m = NSMenu()
         func add(_ title: String, _ sel: Selector, _ obj: Any? = nil, symbol: String? = nil) {
             let i = NSMenuItem(title: title, action: sel, keyEquivalent: ""); i.target = self; i.representedObject = obj
-            i.image = Self.symbol(symbol)
+            Self.decorate(i, symbol: symbol)
             m.addItem(i)
         }
         let accounts = Store.shared.accounts
@@ -84,30 +84,38 @@ final class Presence: NSObject {
         for a in accounts {
             switch Mounter.shared.state(a) {
             case .on: add("\(L("acc.unmount")) \(a.name)", #selector(toggle(_:)), a.id, symbol: Providers.find(a.provider)?.symbol)
-            case .starting, .healing: let i = NSMenuItem(title: "\(a.name) — \(L("acc.status.starting"))", action: nil, keyEquivalent: ""); i.isEnabled = false; i.image = Self.symbol(Providers.find(a.provider)?.symbol); m.addItem(i)
+            case .starting, .healing: let i = NSMenuItem(title: "\(a.name) — \(L("acc.status.starting"))", action: nil, keyEquivalent: ""); i.isEnabled = false; Self.decorate(i, symbol: Providers.find(a.provider)?.symbol); m.addItem(i)
             default: add("\(L("acc.mount")) \(a.name)", #selector(toggle(_:)), a.id, symbol: Providers.find(a.provider)?.symbol)
             }
         }
         m.addItem(.separator())
-        if Veille.shared.unread > 0 { add(L("menu.watch", Veille.shared.unread), #selector(openMainAction)) }
-        add(L("menu.open"), #selector(openMainAction))
+        if Veille.shared.unread > 0 { add(L("menu.watch", Veille.shared.unread), #selector(openMainAction), symbol: "eye") }
+        add(L("menu.open"), #selector(openMainAction), symbol: "macwindow")
         let iconItem = NSMenuItem(title: L("set.icon"), action: nil, keyEquivalent: ""), sub = NSMenu()
         for mode in IconMode.allCases {
             let i = NSMenuItem(title: mode.label, action: #selector(chooseMode(_:)), keyEquivalent: ""); i.target = self
             i.representedObject = mode.rawValue; i.state = mode == IconMode.current ? .on : .off; sub.addItem(i)
         }
+        Self.decorate(iconItem, symbol: "dock.rectangle")
         iconItem.submenu = sub; m.addItem(iconItem)
-        add(L("about.menu"), #selector(about))
-        add(L("menu.quit"), #selector(quit))
+        add(L("about.menu"), #selector(about), symbol: "info.circle")
+        add(L("menu.quit"), #selector(quit), symbol: "power")
         return m
     }
 
-    /// Pictogramme du service (monochrome, s'adapte au thème), à gauche du nom.
-    private static func symbol(_ name: String?) -> NSImage? {
-        guard let name else { return nil }
-        let img = NSImage(systemSymbolName: name, accessibilityDescription: nil)?.withSymbolConfiguration(.init(pointSize: 13, weight: .regular))
-        img?.isTemplate = true
-        return img
+    /// Pictogramme du service à gauche du titre. `NSMenuItem.image` n'est pas affiché dans ce menu (macOS 27) : l'image est donc
+    /// insérée dans le titre lui-même (pièce jointe de texte), en couleur de texte de menu.
+    private static func decorate(_ item: NSMenuItem, symbol: String?) {
+        guard let symbol, let base = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) else { return }
+        let cfg = NSImage.SymbolConfiguration(pointSize: 15, weight: .regular).applying(.init(paletteColors: [.labelColor]))
+        guard let img = base.withSymbolConfiguration(cfg) else { return }
+        let att = NSTextAttachment()
+        att.image = img
+        let h: CGFloat = 16, w = img.size.width / max(img.size.height, 1) * h
+        att.bounds = NSRect(x: 0, y: -4, width: w, height: h)
+        let out = NSMutableAttributedString(attachment: att)
+        out.append(NSAttributedString(string: "  " + item.title, attributes: [.font: NSFont.menuFont(ofSize: 0)]))
+        item.attributedTitle = out
     }
 
     @objc private func toggle(_ s: NSMenuItem) {

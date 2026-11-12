@@ -30,9 +30,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func showMain() {
         if window == nil {
-            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 780, height: 580), styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 780, height: 520), styleMask: [.titled, .closable, .miniaturizable, .resizable],
                              backing: .buffered, defer: false)
             w.title = "mCLOUD"
+            w.isOpaque = true
+            w.backgroundColor = NSColor(Socle.C.bg)
             w.minSize = NSSize(width: 720, height: 460)
             w.isReleasedWhenClosed = false
             w.contentView = NSHostingView(rootView: RootView())
