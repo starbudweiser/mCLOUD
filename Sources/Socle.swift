@@ -641,3 +641,14 @@ extension NSStatusItem {
         menu.popUp(positioning: nil, at: NSPoint(x: x, y: r.minY - 4), in: nil)
     }
 }
+
+// MARK: Lignes de liste
+
+extension View {
+    /// Texte d'identité d'une ligne (nom d'un compte, d'un fichier, d'une appli…) : jamais sur deux lignes, prioritaire sur
+    /// les colonnes d'état et d'actions (c'est elles qui cèdent la place), tronqué en fin de ligne avec le texte complet en
+    /// infobulle. À poser sur chaque nom d'une liste ; les colonnes d'actions ont une largeur fixe, le surplus va dans un menu « … ».
+    func socleRowName(_ full: String) -> some View {
+        lineLimit(1).truncationMode(.tail).layoutPriority(1).help(full)
+    }
+}

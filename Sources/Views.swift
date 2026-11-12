@@ -77,40 +77,37 @@ struct AccountsView: View {
         .sheet(item: $authorizing) { AddAccountView(existing: $0) }
     }
 
+    /// Ligne d'un compte : le nom (une seule ligne, prioritaire), l'état, une action principale et un menu « … » pour le reste.
     private func row(_ a: Account) -> some View {
         let p = Providers.find(a.provider)
         let st = mounter.state(a)
+        let sub = [p?.name ?? a.provider, a.encrypted ? L("acc.encrypted") : nil].compactMap { $0 }.joined(separator: " · ")
         return HStack(spacing: Socle.M.space3) {
             Image(systemName: p?.symbol ?? "cloud").font(.system(size: 20)).frame(width: 28).foregroundStyle(Socle.C.accentText)
             VStack(alignment: .leading, spacing: 2) {
-                Text(a.name).socle(Socle.T.title).foregroundStyle(Socle.C.textStrong)
-                Text([p?.name ?? a.provider, a.encrypted ? L("acc.encrypted") : nil].compactMap { $0 }.joined(separator: " · ")).socle(Socle.T.meta).foregroundStyle(Socle.C.textSubtle)
+                Text(a.name).socle(Socle.T.title).foregroundStyle(Socle.C.textStrong).socleRowName(a.name)
+                Text(sub).socle(Socle.T.meta).foregroundStyle(Socle.C.textSubtle).socleRowName(sub)
             }
             Spacer(minLength: Socle.M.space2)
             Group {
-                if a.pending {
-                    Text(a.hint.isEmpty ? L("acc.pending") : a.hint).socle(Socle.T.meta).foregroundStyle(Socle.C.warning).lineLimit(1).truncationMode(.middle)
-                } else { status(st) }
-            }.frame(width: 190, alignment: .leading)
-            HStack(spacing: Socle.M.space2) {
-                if a.pending {
-                    Button(L("acc.authorize")) { authorizing = a }.buttonStyle(SocleButtonStyle(.primary)).btnWidth(110)
-                    Color.clear.frame(width: 110, height: 1)
-                } else {
+                if a.pending { Text(a.hint.isEmpty ? L("acc.pending") : a.hint).socle(Socle.T.meta).foregroundStyle(Socle.C.warning).socleRowName(a.hint) }
+                else { status(st) }
+            }.frame(width: 130, alignment: .leading)
+            Group {
+                if a.pending { Button(L("acc.authorize")) { authorizing = a }.buttonStyle(SocleButtonStyle(.primary)) }
+                else {
                     switch st {
-                    case .on(let path):
-                        Button(L("acc.open")) { NSWorkspace.shared.open(URL(fileURLWithPath: path)) }.buttonStyle(SocleButtonStyle(.secondary)).btnWidth(110)
-                        Button(L("acc.unmount")) { Task { await mounter.unmount(a) } }.buttonStyle(SocleButtonStyle(.secondary)).btnWidth(110)
-                    case .starting, .healing:
-                        ProgressView().controlSize(.small).frame(width: 110)
-                        Color.clear.frame(width: 110, height: 1)
-                    default:
-                        Button(L("acc.mount")) { Task { await mounter.mount(a) } }.buttonStyle(SocleButtonStyle(.primary)).btnWidth(110)
-                        Color.clear.frame(width: 110, height: 1)
+                    case .on(let path): Button(L("acc.open")) { NSWorkspace.shared.open(URL(fileURLWithPath: path)) }.buttonStyle(SocleButtonStyle(.secondary))
+                    case .starting, .healing: ProgressView().controlSize(.small)
+                    default: Button(L("acc.mount")) { Task { await mounter.mount(a) } }.buttonStyle(SocleButtonStyle(.primary))
                     }
                 }
-                Button(L("acc.edit")) { editing = a }.buttonStyle(SocleButtonStyle(.tertiary)).btnWidth(100)
-            }
+            }.frame(width: 100)
+            Menu {
+                if case .on = st { Button(L("acc.unmount")) { Task { await mounter.unmount(a) } } }
+                Button(L("acc.edit")) { editing = a }
+            } label: { Image(systemName: "ellipsis").frame(width: 28, height: Socle.M.sizeControlLg) }
+                .menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: 36)
         }
         .padding(Socle.M.space3).background(Socle.C.surface)
     }
@@ -121,7 +118,7 @@ struct AccountsView: View {
         case .starting: Text(L("acc.status.starting")).socle(Socle.T.meta).foregroundStyle(Socle.C.textMuted)
         case .healing: Text(L("acc.status.heal")).socle(Socle.T.meta).foregroundStyle(Socle.C.warning)
         case .on: Label(L("acc.status.on"), systemImage: "circle.fill").socle(Socle.T.meta).foregroundStyle(Socle.C.success)
-        case .error(let e): Text(L("acc.status.error", e)).socle(Socle.T.meta).foregroundStyle(Socle.C.danger).lineLimit(2).frame(maxWidth: 220, alignment: .trailing)
+        case .error(let e): Text(L("acc.status.error", e)).socle(Socle.T.meta).foregroundStyle(Socle.C.danger).socleRowName(e)
         }
     }
 }
