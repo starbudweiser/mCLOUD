@@ -45,10 +45,21 @@ final class Presence: NSObject {
         return img
     }
 
+    /// Ouvre le menu juste sous l'icône, en coordonnées d'écran calculées depuis la fenêtre de l'icône : celle de SON écran
+    /// (pas de l'écran actif), ce qui évite le menu décalé ou sur le mauvais écran avec deux moniteurs.
     @objc private func clicked() {
         guard let button = item?.button else { return }
         let menu = makeMenu()
-        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.isFlipped ? button.bounds.maxY + 4 : -4), in: button)
+        guard let w = button.window else {
+            menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.isFlipped ? button.bounds.maxY + 4 : -4), in: button)
+            return
+        }
+        let r = w.convertToScreen(button.convert(button.bounds, to: nil))
+        var x = r.minX
+        if let sc = w.screen ?? NSScreen.screens.first(where: { $0.frame.intersects(r) }) {
+            x = min(max(x, sc.frame.minX), sc.frame.maxX - menu.size.width - 4)
+        }
+        menu.popUp(positioning: nil, at: NSPoint(x: x, y: r.minY - 4), in: nil)
     }
 
     private func makeMenu() -> NSMenu {
