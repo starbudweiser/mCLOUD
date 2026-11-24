@@ -66,12 +66,12 @@ final class Mounter: ObservableObject {
         else { stop(a.id); states[a.id] = .error(lastErr[a.id] ?? "NetFS") }
     }
 
-    /// Réglages du cache selon le mode : « minimal » ne garde sur le disque que les fichiers en cours d'envoi (quelques Mo, vidés à la fin).
+    /// Réglages du cache selon le mode : « minimal » garde au plus 1 Go de blocs lus ou en cours d'envoi (cache par morceaux, vidé à la fin), ce qui évite de relire l'index des vidéos à chaque déplacement.
     static func cacheArgs(_ a: Account) -> [String] {
         switch a.cacheMode {
         case "offline": return ["--vfs-cache-mode", "full", "--vfs-cache-max-size", "\(a.cacheGB)G", "--vfs-cache-max-age", "\(a.cacheDays * 24)h"]
         case "balanced": return ["--vfs-cache-mode", "full", "--vfs-cache-max-size", "2G", "--vfs-cache-max-age", "6h"]
-        default: return ["--vfs-cache-mode", "writes", "--vfs-cache-max-size", "256M", "--vfs-cache-max-age", "5m"]
+        default: return ["--vfs-cache-mode", "full", "--vfs-cache-max-size", "1G", "--vfs-cache-max-age", "5m", "--vfs-read-ahead", "64M"]
         }
     }
 
