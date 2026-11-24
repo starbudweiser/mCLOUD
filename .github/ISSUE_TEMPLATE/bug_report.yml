@@ -1,0 +1,51 @@
+name: Bug report
+description: Something does not work as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        mCLOUD is a personal project maintained on free time; replies are not guaranteed within a given delay.
+        One issue per problem, please. Reports with the details below are far more likely to be fixed.
+  - type: input
+    id: version
+    attributes:
+      label: mCLOUD version
+      description: Settings → About, or the release you downloaded.
+      placeholder: "1.0.10"
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version and Mac type
+      placeholder: "macOS 27.2, Apple Silicon"
+    validations:
+      required: true
+  - type: input
+    id: provider
+    attributes:
+      label: Cloud service and cache mode
+      description: Google Drive, WebDAV, S3…; cache mode is in Edit account → Cache.
+      placeholder: "WebDAV, Minimal cache"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps, starting from a mounted or new account.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error message or log (optional)
+      description: Remove passwords, tokens and private paths first.
+      render: text
